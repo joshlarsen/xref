@@ -16,5 +16,6 @@ test.env
 .DS_Store
 *.log
 xref
+demo
 __debug_bin*
 
