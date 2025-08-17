@@ -19,7 +19,8 @@ func main() {
 	}
 
 	// Find definition at a cursor
-	def, cands, err := engine.FindDefinitionAt("./test_project/hello.go", 5, 6)
+	// def, cands, err := engine.FindDefinitionAt("./test_project/hello.go", 6, 7)
+	def, cands, err := engine.FindDefinitionAt("./test_project/hello.go", 6, 18)
 	if err != nil {
 		fmt.Println("No definition:", err, "candidates:", cands)
 	} else {
