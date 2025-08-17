@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 
@@ -51,7 +52,7 @@ func newProjectIndex() *ProjectIndex {
 func (pi *ProjectIndex) merge(fi *FileIndex) {
 	pi.mu.Lock()
 	defer pi.mu.Unlock()
-	
+
 	// Add all definitions from this file to the global definition map
 	for sid, d := range fi.Defs {
 		pi.Defs[sid] = d
@@ -59,12 +60,12 @@ func (pi *ProjectIndex) merge(fi *FileIndex) {
 		key := d.Lang + ":" + d.Name
 		pi.NameLookup[key] = append(pi.NameLookup[key], sid)
 	}
-	
+
 	// Merge reference locations for each symbol
 	for sid, refs := range fi.Refs {
 		pi.Refs[sid] = append(pi.Refs[sid], refs...)
 	}
-	
+
 	// Store all raw occurrences for this file (used for cursor-based lookups)
 	pi.FileOcc[fi.File] = append(pi.FileOcc[fi.File], fi.Occurrences...)
 }
@@ -200,26 +201,26 @@ func (e *Engine) pickAdapter(path string) LanguageAdapter {
 func (e *Engine) FindDefinitionAt(file string, line, col int) (DefLocation, []string, error) {
 	// Normalize the file path to match how it's stored in the index
 	normalizedFile := filepath.ToSlash(strings.TrimPrefix(file, "./"))
-	
+
 	// Get all symbol occurrences for this file from the index
 	occs := e.GetFileOccurrences(normalizedFile)
-	
+
 	// Find the specific occurrence that contains the cursor position
 	occ, ok := pickOccurrence(occs, line, col)
 	if !ok {
 		return DefLocation{}, nil, errors.New("no identifier at position")
 	}
-	
+
 	// Get the language adapter for this file type
 	adapter := e.pickAdapter(file)
 	if adapter == nil {
 		return DefLocation{}, nil, errors.New("no adapter for file")
 	}
-	
+
 	// Let the language adapter resolve the occurrence to candidate symbol IDs
 	src, _ := os.ReadFile(file)
 	cands := adapter.ResolveAt(file, src, occ, e.Index)
-	
+
 	// Look up the first candidate that has a known definition in our index
 	e.Index.mu.RLock()
 	defer e.Index.mu.RUnlock()
@@ -247,6 +248,27 @@ func (e *Engine) GetDefinitions() map[string]DefLocation {
 	for k, v := range e.Index.Defs {
 		out[k] = v
 	}
+	return out
+}
+
+// GetDefinitionTree returns a list of all definitions in the project, sorted by file.
+func (e *Engine) GetDefinitionTree() []DefLocation {
+	e.Index.mu.RLock()
+	defer e.Index.mu.RUnlock()
+	out := make([]DefLocation, 0, len(e.Index.Defs))
+	for _, v := range e.Index.Defs {
+		out = append(out, v)
+	}
+	// Sort by file name, then by def kind, then by def name
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].File != out[j].File {
+			return out[i].File < out[j].File
+		}
+		if out[i].Kind != out[j].Kind {
+			return out[i].Kind < out[j].Kind
+		}
+		return out[i].Name < out[j].Name
+	})
 	return out
 }
 
@@ -289,7 +311,7 @@ func symbolID(lang, file, container, name string) string {
 	// Normalize file path for consistent symbol IDs across platforms
 	file = filepath.ToSlash(file)
 	file = strings.TrimPrefix(file, "./")
-	
+
 	if container != "" {
 		// Method or nested symbol: include container (receiver type for Go methods)
 		return lang + "::" + file + "::" + container + "." + name

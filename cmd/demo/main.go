@@ -14,12 +14,12 @@ func main() {
 	}
 
 	// Index a codebase (dir or specific files)
-	if err := engine.IndexRoot("./test_project"); err != nil {
+	// if err := engine.IndexRoot("./test_project"); err != nil {
+	if err := engine.IndexRoot("./ghostbank-go/"); err != nil {
 		log.Fatal(err)
 	}
 
 	// Find definition at a cursor
-	// def, cands, err := engine.FindDefinitionAt("./test_project/hello.go", 6, 7)
 	def, cands, err := engine.FindDefinitionAt("./test_project/hello.go", 6, 18)
 	if err != nil {
 		fmt.Println("No definition:", err, "candidates:", cands)
@@ -28,7 +28,18 @@ func main() {
 	}
 
 	// List all known definitions (SymbolID -> Def)
-	for sid, d := range engine.GetDefinitions() {
-		fmt.Println(sid, "->", d.File, d.Kind, d.Name)
+	// for sid, d := range engine.GetDefinitions() {
+	// 	fmt.Println(sid, "->", d.File, d.Kind, d.Name)
+	// }
+
+	tree := engine.GetDefinitionTree()
+	lastFile := ""
+	for _, d := range tree {
+		// only print file name once, then all the definitions in that file
+		if d.File != lastFile {
+			fmt.Println(d.File)
+			lastFile = d.File
+		}
+		fmt.Printf("  %s %s:L%d:%d-L%d:%d\n", d.Kind, d.Name, d.Rng.Start.Line, d.Rng.Start.Col, d.Rng.End.Line, d.Rng.End.Col)
 	}
 }
