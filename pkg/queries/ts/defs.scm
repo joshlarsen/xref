@@ -1,0 +1,6 @@
+((function_declaration name: (identifier) @fname) @rng)
+((class_declaration    name: (type_identifier) @cname) @rng)
+((lexical_declaration (variable_declarator name: (identifier) @vname)) @rng)
+((variable_statement  (variable_declarator name: (identifier) @vname)) @rng)
+((interface_declaration name: (type_identifier) @iname) @rng)
+((enum_declaration       name: (identifier) @ename) @rng)
