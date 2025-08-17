@@ -1,5 +1,5 @@
 ((function_declaration name: (identifier) @fname) @rng)
-((method_declaration name: (field_identifier) @fname receiver: (parameter_list (parameter_declaration type: (type_identifier) @mrecv))) @rng)
+((method_declaration name: (field_identifier) @fname) @rng)
 ((type_spec name: (type_identifier) @tname) @rng)
 ((var_spec  name: (identifier) @vname) @rng)
 ((const_spec name: (identifier) @cname) @rng)

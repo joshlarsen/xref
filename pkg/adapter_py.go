@@ -1,10 +1,11 @@
 package xref
 
 import (
+	"context"
 	"strings"
 
-	"github.com/ghostsecurity/xref/pkg/languages"
 	sitter "github.com/smacker/go-tree-sitter"
+	"github.com/smacker/go-tree-sitter/python"
 )
 
 type pyAdapter struct {
@@ -12,7 +13,7 @@ type pyAdapter struct {
 }
 
 func newPyAdapter() (LanguageAdapter, error) {
-	tsLang := languages.GetPythonLanguage()
+	tsLang := python.GetLanguage()
 	qd, err := loadQuery("py", "defs.scm", tsLang)
 	if err != nil {
 		return nil, err
@@ -35,8 +36,12 @@ func (p *pyAdapter) CanHandle(path string) bool {
 
 func (p *pyAdapter) Parse(_ string, src []byte) (*sitter.Tree, error) {
 	parser := sitter.NewParser()
-	parser.SetLanguage(languages.GetPythonLanguage())
-	return parser.ParseCtx(nil, nil, src)
+	lang := python.GetLanguage()
+	if lang == nil {
+		return nil, nil // Language not available
+	}
+	parser.SetLanguage(lang)
+	return parser.ParseCtx(context.Background(), nil, src)
 }
 
 func (p *pyAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIndex, error) {
@@ -44,6 +49,9 @@ func (p *pyAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIn
 		Lang: "py", File: path,
 		Defs: map[string]DefLocation{}, Refs: map[string][]RefLocation{},
 		Imports: map[string]string{},
+	}
+	if tree == nil {
+		return fi, nil // Return empty index if parsing failed
 	}
 	root := tree.RootNode()
 	execQuery(src, root, p.qImport, func(capts []sitter.QueryCapture, get func(id uint32) string) {

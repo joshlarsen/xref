@@ -1,11 +1,12 @@
 package xref
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
-	"github.com/ghostsecurity/xref/pkg/languages"
 	sitter "github.com/smacker/go-tree-sitter"
+	"github.com/smacker/go-tree-sitter/golang"
 )
 
 type goAdapter struct {
@@ -13,7 +14,7 @@ type goAdapter struct {
 }
 
 func newGoAdapter() (LanguageAdapter, error) {
-	tsLang := languages.GetGoLanguage()
+	tsLang := golang.GetLanguage()
 	qd, err := loadQuery("go", "defs.scm", tsLang)
 	if err != nil {
 		return nil, err
@@ -35,12 +36,19 @@ func (g *goAdapter) CanHandle(path string) bool {
 
 func (g *goAdapter) Parse(_ string, src []byte) (*sitter.Tree, error) {
 	p := sitter.NewParser()
-	p.SetLanguage(languages.GetGoLanguage())
-	return p.ParseCtx(nil, nil, src)
+	lang := golang.GetLanguage()
+	if lang == nil {
+		return nil, nil // Language not available
+	}
+	p.SetLanguage(lang)
+	return p.ParseCtx(context.Background(), nil, src)
 }
 
 func (g *goAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIndex, error) {
 	fi := &FileIndex{Lang: "go", File: path, Defs: map[string]DefLocation{}, Refs: map[string][]RefLocation{}, Imports: map[string]string{}}
+	if tree == nil {
+		return fi, nil // Return empty index if parsing failed
+	}
 	root := tree.RootNode()
 	execQuery(src, root, g.qImport, func(capts []sitter.QueryCapture, _ func(id uint32) string) {
 		alias := getByName(src, capts, g.qImport, "alias")

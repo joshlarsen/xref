@@ -1,10 +1,11 @@
 package xref
 
 import (
+	"context"
 	"strings"
 
-	"github.com/ghostsecurity/xref/pkg/languages"
 	sitter "github.com/smacker/go-tree-sitter"
+	"github.com/smacker/go-tree-sitter/typescript/typescript"
 )
 
 type tsAdapter struct {
@@ -12,7 +13,7 @@ type tsAdapter struct {
 }
 
 func newTsAdapter() (LanguageAdapter, error) {
-	tsLang := languages.GetTypescriptLanguage()
+	tsLang := typescript.GetLanguage()
 	qd, err := loadQuery("ts", "defs.scm", tsLang)
 	if err != nil {
 		return nil, err
@@ -35,12 +36,19 @@ func (t *tsAdapter) CanHandle(path string) bool {
 
 func (t *tsAdapter) Parse(_ string, src []byte) (*sitter.Tree, error) {
 	p := sitter.NewParser()
-	p.SetLanguage(languages.GetTypescriptLanguage())
-	return p.ParseCtx(nil, nil, src)
+	lang := typescript.GetLanguage()
+	if lang == nil {
+		return nil, nil // Language not available
+	}
+	p.SetLanguage(lang)
+	return p.ParseCtx(context.Background(), nil, src)
 }
 
 func (t *tsAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIndex, error) {
 	fi := &FileIndex{Lang: "ts", File: path, Defs: map[string]DefLocation{}, Refs: map[string][]RefLocation{}, Imports: map[string]string{}}
+	if tree == nil {
+		return fi, nil // Return empty index if parsing failed
+	}
 	root := tree.RootNode()
 	execQuery(src, root, t.qImport, func(capts []sitter.QueryCapture, _ func(id uint32) string) {
 		alias := getByName(src, capts, t.qImport, "alias")

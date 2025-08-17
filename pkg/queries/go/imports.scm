@@ -1,1 +1,1 @@
-((import_spec name: (identifier)? @alias path: (interpreted_string_literal) @path) @rng)
+((import_spec path: (interpreted_string_literal) @path) @rng)
