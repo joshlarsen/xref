@@ -168,7 +168,9 @@ func (e *Engine) pickAdapter(path string) LanguageAdapter {
 }
 
 func (e *Engine) FindDefinitionAt(file string, line, col int) (DefLocation, []string, error) {
-	occs := e.GetFileOccurrences(file)
+	// Normalize the file path to match how it's stored in the index
+	normalizedFile := filepath.ToSlash(strings.TrimPrefix(file, "./"))
+	occs := e.GetFileOccurrences(normalizedFile)
 	occ, ok := pickOccurrence(occs, line, col)
 	if !ok {
 		return DefLocation{}, nil, errors.New("no identifier at position")
