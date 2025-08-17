@@ -17,7 +17,7 @@ func loadQuery(langFolder, file string, tsLang *sitter.Language) (*sitter.Query,
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
-	q, err := sitter.NewQuery(tsLang, string(b))
+	q, err := sitter.NewQuery([]byte(b), tsLang)
 	if err != nil {
 		return nil, fmt.Errorf("compile %s: %w", path, err)
 	}

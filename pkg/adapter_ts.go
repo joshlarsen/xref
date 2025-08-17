@@ -3,17 +3,16 @@ package xref
 import (
 	"strings"
 
+	"github.com/ghostsecurity/xref/pkg/languages"
 	sitter "github.com/smacker/go-tree-sitter"
-	tsquery "github.com/smacker/go-tree-sitter/query"
-	"github.com/smacker/go-tree-sitter/typescript"
 )
 
 type tsAdapter struct {
-	qDefs, qRefs, qImport *tsquery.Query
+	qDefs, qRefs, qImport *sitter.Query
 }
 
 func newTsAdapter() (LanguageAdapter, error) {
-	tsLang := typescript.GetLanguage()
+	tsLang := languages.GetTypescriptLanguage()
 	qd, err := loadQuery("ts", "defs.scm", tsLang)
 	if err != nil {
 		return nil, err
@@ -36,14 +35,14 @@ func (t *tsAdapter) CanHandle(path string) bool {
 
 func (t *tsAdapter) Parse(_ string, src []byte) (*sitter.Tree, error) {
 	p := sitter.NewParser()
-	p.SetLanguage(typescript.GetLanguage())
-	return p.ParseCtx(nil, src)
+	p.SetLanguage(languages.GetTypescriptLanguage())
+	return p.ParseCtx(nil, nil, src)
 }
 
 func (t *tsAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIndex, error) {
 	fi := &FileIndex{Lang: "ts", File: path, Defs: map[string]DefLocation{}, Refs: map[string][]RefLocation{}, Imports: map[string]string{}}
 	root := tree.RootNode()
-	execQuery(src, root, t.qImport, func(capts []tsquery.Capture, _ func(id uint32) string) {
+	execQuery(src, root, t.qImport, func(capts []sitter.QueryCapture, _ func(id uint32) string) {
 		alias := getByName(src, capts, t.qImport, "alias")
 		module := strings.Trim(getByName(src, capts, t.qImport, "module"), `"'`)
 		rng := rangeByName(src, capts, t.qImport, "rng")
@@ -52,7 +51,7 @@ func (t *tsAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIn
 			fi.Occurrences = append(fi.Occurrences, Occurrence{Name: alias, KindHint: "import", Rng: rng})
 		}
 	})
-	execQuery(src, root, t.qDefs, func(capts []tsquery.Capture, _ func(id uint32) string) {
+	execQuery(src, root, t.qDefs, func(capts []sitter.QueryCapture, _ func(id uint32) string) {
 		var name, kind string
 		switch {
 		case getByName(src, capts, t.qDefs, "fname") != "":
@@ -74,7 +73,7 @@ func (t *tsAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIn
 		fi.Defs[sid] = DefLocation{Lang: "ts", File: path, Rng: rng, Name: name, Kind: kind}
 		fi.Occurrences = append(fi.Occurrences, Occurrence{Name: name, KindHint: "def", Rng: rng, SymbolID: sid})
 	})
-	execQuery(src, root, t.qRefs, func(capts []tsquery.Capture, _ func(id uint32) string) {
+	execQuery(src, root, t.qRefs, func(capts []sitter.QueryCapture, _ func(id uint32) string) {
 		id := getByName(src, capts, t.qRefs, "id")
 		rng := rangeByName(src, capts, t.qRefs, "rng")
 		if id != "" {

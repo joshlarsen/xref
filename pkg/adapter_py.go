@@ -3,17 +3,16 @@ package xref
 import (
 	"strings"
 
+	"github.com/ghostsecurity/xref/pkg/languages"
 	sitter "github.com/smacker/go-tree-sitter"
-	"github.com/smacker/go-tree-sitter/python"
-	tsquery "github.com/smacker/go-tree-sitter/query"
 )
 
 type pyAdapter struct {
-	qDefs, qRefs, qImport *tsquery.Query
+	qDefs, qRefs, qImport *sitter.Query
 }
 
 func newPyAdapter() (LanguageAdapter, error) {
-	tsLang := python.GetLanguage()
+	tsLang := languages.GetPythonLanguage()
 	qd, err := loadQuery("py", "defs.scm", tsLang)
 	if err != nil {
 		return nil, err
@@ -36,8 +35,8 @@ func (p *pyAdapter) CanHandle(path string) bool {
 
 func (p *pyAdapter) Parse(_ string, src []byte) (*sitter.Tree, error) {
 	parser := sitter.NewParser()
-	parser.SetLanguage(python.GetLanguage())
-	return parser.ParseCtx(nil, src)
+	parser.SetLanguage(languages.GetPythonLanguage())
+	return parser.ParseCtx(nil, nil, src)
 }
 
 func (p *pyAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIndex, error) {
@@ -47,7 +46,7 @@ func (p *pyAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIn
 		Imports: map[string]string{},
 	}
 	root := tree.RootNode()
-	execQuery(src, root, p.qImport, func(capts []tsquery.Capture, get func(id uint32) string) {
+	execQuery(src, root, p.qImport, func(capts []sitter.QueryCapture, get func(id uint32) string) {
 		mod := getByName(src, capts, p.qImport, "module")
 		alias := getByName(src, capts, p.qImport, "alias")
 		rng := rangeByName(src, capts, p.qImport, "m_rng")
@@ -59,7 +58,7 @@ func (p *pyAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIn
 			fi.Occurrences = append(fi.Occurrences, Occurrence{Name: alias, KindHint: "import", Rng: rng})
 		}
 	})
-	execQuery(src, root, p.qDefs, func(capts []tsquery.Capture, _ func(id uint32) string) {
+	execQuery(src, root, p.qDefs, func(capts []sitter.QueryCapture, _ func(id uint32) string) {
 		name, kind := firstNonEmptyBy(src, capts, p.qDefs, "fname", "cname", "aname"), ""
 		switch {
 		case getByName(src, capts, p.qDefs, "fname") != "":
@@ -77,7 +76,7 @@ func (p *pyAdapter) Extract(path string, src []byte, tree *sitter.Tree) (*FileIn
 		fi.Defs[sid] = DefLocation{Lang: "py", File: path, Rng: rng, Name: name, Kind: kind}
 		fi.Occurrences = append(fi.Occurrences, Occurrence{Name: name, KindHint: "def", Rng: rng, SymbolID: sid})
 	})
-	execQuery(src, root, p.qRefs, func(capts []tsquery.Capture, _ func(id uint32) string) {
+	execQuery(src, root, p.qRefs, func(capts []sitter.QueryCapture, _ func(id uint32) string) {
 		id := getByName(src, capts, p.qRefs, "id")
 		rng := rangeByName(src, capts, p.qRefs, "rng")
 		if id != "" {

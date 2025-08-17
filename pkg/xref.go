@@ -38,23 +38,23 @@ type Engine struct {
 }
 
 // New creates an Engine. If no adapters are provided, it registers Go+TS+Py.
-func New(adapters ...LanguageAdapter) (*Engine, error)
+// func New(adapters ...LanguageAdapter) (*Engine, error) - implemented in engine.go
 
 // IndexRoot recursively indexes a directory (skipping VCS/venv caches).
-func (e *Engine) IndexRoot(root string) error
+// func (e *Engine) IndexRoot(root string) error - implemented in engine.go
 
 // IndexPaths indexes specific files or directories (recursive for dirs).
-func (e *Engine) IndexPaths(paths ...string) error
+// func (e *Engine) IndexPaths(paths ...string) error - implemented in engine.go
 
 // FindDefinitionAt returns the best definition for the identifier at file:line:col.
 // Also returns the set of candidate SymbolIDs it considered (debugging).
-func (e *Engine) FindDefinitionAt(file string, line, col int) (DefLocation, []string, error)
+// func (e *Engine) FindDefinitionAt(file string, line, col int) (DefLocation, []string, error) - implemented in engine.go
 
 // FindReferences returns all reference locations for a SymbolID (if collected).
-func (e *Engine) FindReferences(symbolID string) ([]RefLocation, error)
+// func (e *Engine) FindReferences(symbolID string) ([]RefLocation, error) - implemented in engine.go
 
 // GetDefinitions returns a copy of the definition map (SymbolID -> Def).
-func (e *Engine) GetDefinitions() map[string]DefLocation
+// func (e *Engine) GetDefinitions() map[string]DefLocation - implemented in engine.go
 
 // GetFileOccurrences returns all raw occurrences we captured for a file (debugging).
-func (e *Engine) GetFileOccurrences(file string) []Occurrence
+// func (e *Engine) GetFileOccurrences(file string) []Occurrence - implemented in engine.go

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ghostsecurity/xref"
+	xref "github.com/ghostsecurity/xref/pkg"
 )
 
 func main() {
@@ -14,12 +14,12 @@ func main() {
 	}
 
 	// Index a codebase (dir or specific files)
-	if err := engine.IndexRoot("./some/project"); err != nil {
+	if err := engine.IndexRoot("./test_project"); err != nil {
 		log.Fatal(err)
 	}
 
 	// Find definition at a cursor
-	def, cands, err := engine.FindDefinitionAt("./some/project/pkg/foo.go", 42, 17)
+	def, cands, err := engine.FindDefinitionAt("./test_project/hello.go", 5, 5)
 	if err != nil {
 		fmt.Println("No definition:", err, "candidates:", cands)
 	} else {

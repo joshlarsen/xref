@@ -2,13 +2,12 @@ package xref
 
 import (
 	sitter "github.com/smacker/go-tree-sitter"
-	tsquery "github.com/smacker/go-tree-sitter/query"
 )
 
-func execQuery(src []byte, root *sitter.Node, q *tsquery.Query, visit func([]tsquery.Capture, func(id uint32) string)) {
-	cur := tsquery.NewCursor()
+func execQuery(src []byte, root *sitter.Node, q *sitter.Query, visit func([]sitter.QueryCapture, func(id uint32) string)) {
+	cur := sitter.NewQueryCursor()
 	defer cur.Close()
-	cur.Exec(q, root, src)
+	cur.Exec(q, root)
 	for {
 		m, ok := cur.NextMatch()
 		if !ok {
@@ -18,7 +17,7 @@ func execQuery(src []byte, root *sitter.Node, q *tsquery.Query, visit func([]tsq
 	}
 }
 
-func getByName(src []byte, caps []tsquery.Capture, q *tsquery.Query, name string) string {
+func getByName(src []byte, caps []sitter.QueryCapture, q *sitter.Query, name string) string {
 	for _, c := range caps {
 		if q.CaptureNameForId(c.Index) == name {
 			return string(src[c.Node.StartByte():c.Node.EndByte()])
@@ -27,7 +26,7 @@ func getByName(src []byte, caps []tsquery.Capture, q *tsquery.Query, name string
 	return ""
 }
 
-func rangeByName(src []byte, caps []tsquery.Capture, q *tsquery.Query, name string) Range {
+func rangeByName(src []byte, caps []sitter.QueryCapture, q *sitter.Query, name string) Range {
 	for _, c := range caps {
 		if q.CaptureNameForId(c.Index) == name {
 			sb, eb := c.Node.StartPoint(), c.Node.EndPoint()
@@ -37,7 +36,7 @@ func rangeByName(src []byte, caps []tsquery.Capture, q *tsquery.Query, name stri
 	return Range{}
 }
 
-func firstNonEmptyBy(src []byte, caps []tsquery.Capture, q *tsquery.Query, names ...string) string {
+func firstNonEmptyBy(src []byte, caps []sitter.QueryCapture, q *sitter.Query, names ...string) string {
 	for _, n := range names {
 		if v := getByName(src, caps, q, n); v != "" {
 			return v
