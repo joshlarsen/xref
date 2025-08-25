@@ -28,18 +28,7 @@ func main() {
 	}
 
 	// List all known definitions (SymbolID -> Def)
-	// for sid, d := range engine.GetDefinitions() {
-	// 	fmt.Println(sid, "->", d.File, d.Kind, d.Name)
-	// }
-
-	tree := engine.GetDefinitionTree()
-	lastFile := ""
-	for _, d := range tree {
-		// only print file name once, then all the definitions in that file
-		if d.File != lastFile {
-			fmt.Println(d.File)
-			lastFile = d.File
-		}
-		fmt.Printf("  %s %s:L%d:%d-L%d:%d\n", d.Kind, d.Name, d.Rng.Start.Line, d.Rng.Start.Col, d.Rng.End.Line, d.Rng.End.Col)
+	for sid, d := range engine.GetDefinitions() {
+		fmt.Println(sid, "->", d.File, d.Kind, d.Name)
 	}
 }

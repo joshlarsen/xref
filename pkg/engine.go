@@ -2,6 +2,7 @@ package xref
 
 import (
 	"errors"
+	"maps"
 	"os"
 	"path/filepath"
 	"sort"
@@ -84,11 +85,11 @@ func New(adapters ...LanguageAdapter) (*Engine, error) {
 		if err != nil {
 			return nil, err
 		}
-		goa, err := newGoAdapter()
+		g, err := newGoAdapter()
 		if err != nil {
 			return nil, err
 		}
-		adapters = []LanguageAdapter{goa, ts, py}
+		adapters = []LanguageAdapter{g, ts, py}
 	}
 	return &Engine{Index: newProjectIndex(), Adapters: adapters}, nil
 }
@@ -149,7 +150,7 @@ func (e *Engine) IndexPaths(paths ...string) error {
 	// Consumer workers: parse files and extract symbols concurrently
 	var cw sync.WaitGroup
 	workers := 4 // Process 4 files simultaneously for optimal performance
-	for i := 0; i < workers; i++ {
+	for range workers {
 		cw.Add(1)
 		go func() {
 			defer cw.Done()
@@ -245,9 +246,7 @@ func (e *Engine) GetDefinitions() map[string]DefLocation {
 	e.Index.mu.RLock()
 	defer e.Index.mu.RUnlock()
 	out := make(map[string]DefLocation, len(e.Index.Defs))
-	for k, v := range e.Index.Defs {
-		out[k] = v
-	}
+	maps.Copy(out, e.Index.Defs)
 	return out
 }
 
